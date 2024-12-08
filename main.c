@@ -1,0 +1,81 @@
+#include "stm32f4xx_hal.h"
+
+// UART handler declaration
+UART_HandleTypeDef huart2;
+
+// Function prototypes
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
+
+int main(void) {
+    // Initialize the HAL Library
+    HAL_Init();
+
+    // Configure the system clock
+    SystemClock_Config();
+
+    // Initialize all configured peripherals
+    MX_GPIO_Init();
+    MX_USART2_UART_Init();
+    
+    // Variable to store received character
+    char received_char;
+    
+    // Infinite loop
+    while (1) {
+        // Receive a character through UART (Blocking mode)
+        HAL_UART_Receive(&huart2, (uint8_t *)&received_char, 1, HAL_MAX_DELAY);
+        
+        // Check the received character and control the LED accordingly
+        if (received_char == 'N') {
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);  // Turn LED ON
+        } else if (received_char == 'F') {
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); // Turn LED OFF
+        }
+    }
+}
+
+// UART2 Initialization Function
+static void MX_USART2_UART_Init(void) {
+    huart2.Instance = USART2;
+    huart2.Init.BaudRate = 9600;
+    huart2.Init.WordLength = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits = UART_STOPBITS_1;
+    huart2.Init.Parity = UART_PARITY_NONE;
+    huart2.Init.Mode = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+        // Initialization Error
+        Error_Handler();
+    }
+}
+
+// GPIO Initialization Function
+static void MX_GPIO_Init(void) {
+    // Enable GPIOA clock
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    // Configure PA5 as output for LED
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+
+// System Clock Configuration
+void SystemClock_Config(void) {
+    // System Clock Configuration code here
+    // This function should set up the clock speed and sources for the system.
+    // Use STM32CubeMX or HAL library examples to configure this based on your board.
+}
+
+// Error Handler
+void Error_Handler(void) {
+    // User can add his own implementation to report the HAL error return state
+    while (1) {
+    }
+}
