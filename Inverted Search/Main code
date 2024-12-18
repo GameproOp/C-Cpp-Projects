@@ -1,0 +1,224 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct FileNode {
+    char *filename;
+    int count;
+    struct FileNode *next;
+} FileNode;
+
+typedef struct WordNode {
+    char *word;
+    FileNode *fileList;
+    struct WordNode *next;
+} WordNode;
+
+// Function prototypes
+WordNode* create_indexlist(FILE *IndexFile);
+void store_word(char *word, char *filename, WordNode **WordList);
+void write_databasefile(WordNode *WordList, FILE *DatabaseFile);
+FileNode* add_to_filelist(FileNode *fileList, char *filename);
+void display_database(WordNode *WordList);
+void display_output(FileNode *outputList);
+FileNode* search(char *word, WordNode *IndexList);
+char* input_from_user();
+void save_backup(WordNode *WordList);
+
+int main() {
+    int choice;
+    WordNode *indexList = NULL;
+
+    while (1) {
+        printf("\n--- Menu ---\n");
+        printf("1. Create Database\n");
+        printf("2. Display Database\n");
+        printf("3. Update Database\n");
+        printf("4. Search in Database\n");
+        printf("5. Save Database (Backup)\n");
+        printf("6. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // Clear newline character from buffer
+
+        switch (choice) {
+            case 1: {
+                printf("Creating database with the given file contents...\n");
+                FILE *fileList = fopen("FileList.txt", "r");
+                if (fileList == NULL) {
+                    perror("Error opening FileList");
+                    break;
+                }
+                indexList = create_indexlist(fileList);
+                fclose(fileList);
+                FILE *dbFile = fopen("DatabaseFile.txt", "w");
+                if (dbFile == NULL) {
+                    perror("Error creating DatabaseFile");
+                    break;
+                }
+                write_databasefile(indexList, dbFile);
+                fclose(dbFile);
+                printf("Database created successfully.\n");
+                break;
+            }
+            case 2:
+                printf("Displaying Database:\n");
+                display_database(indexList);
+                break;
+
+            case 3: {
+                printf("Updating database. Enter new filename: ");
+                char newFile[100];
+                scanf("%s", newFile);
+                getchar();
+                FILE *newFilePtr = fopen(newFile, "r");
+                if (newFilePtr == NULL) {
+                    perror("Error opening new file");
+                    break;
+                }
+                create_indexlist(newFilePtr);
+                fclose(newFilePtr);
+                printf("Database updated with %s.\n", newFile);
+                break;
+            }
+
+            case 4: {
+                printf("Enter search query: ");
+                char *query = input_from_user();
+                FileNode *outputList = search(query, indexList);
+                printf("Search results:\n");
+                display_output(outputList);
+                break;
+            }
+
+            case 5:
+                printf("Saving Database (taking backup)...\n");
+                save_backup(indexList);
+                printf("Backup saved successfully.\n");
+                break;
+
+            case 6:
+                printf("Exiting...\n");
+                exit(0);
+
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+WordNode* create_indexlist(FILE *IndexFile) {
+    WordNode *WordList = NULL;
+    char filename[100];
+    while (fscanf(IndexFile, "%s", filename) != EOF) {
+        FILE *file = fopen(filename, "r");
+        if (file == NULL) {
+            printf("Error opening file: %s\n", filename);
+            continue;
+        }
+        char word[100];
+        while (fscanf(file, "%s", word) != EOF) {
+            store_word(word, filename, &WordList);
+        }
+        fclose(file);
+    }
+    return WordList;
+}
+
+void store_word(char *word, char *filename, WordNode **WordList) {
+    WordNode *temp = *WordList;
+    while (temp != NULL && strcmp(temp->word, word) < 0) {
+        temp = temp->next;
+    }
+    if (temp != NULL && strcmp(temp->word, word) == 0) {
+        temp->fileList = add_to_filelist(temp->fileList, filename);
+    } else {
+        WordNode *newNode = (WordNode *)malloc(sizeof(WordNode));
+        newNode->word = strdup(word);
+        newNode->fileList = add_to_filelist(NULL, filename);
+        newNode->next = temp;
+        *WordList = newNode;
+    }
+}
+
+FileNode* add_to_filelist(FileNode *fileList, char *filename) {
+    FileNode *temp = fileList;
+    while (temp != NULL && strcmp(temp->filename, filename) != 0) {
+        temp = temp->next;
+    }
+    if (temp != NULL) {
+        temp->count++;
+    } else {
+        FileNode *newFileNode = (FileNode *)malloc(sizeof(FileNode));
+        newFileNode->filename = strdup(filename);
+        newFileNode->count = 1;
+        newFileNode->next = fileList;
+        fileList = newFileNode;
+    }
+    return fileList;
+}
+
+void write_databasefile(WordNode *WordList, FILE *DatabaseFile) {
+    WordNode *temp = WordList;
+    while (temp != NULL) {
+        fprintf(DatabaseFile, "%s:", temp->word);
+        FileNode *fileTemp = temp->fileList;
+        while (fileTemp != NULL) {
+            fprintf(DatabaseFile, " %s(%d)", fileTemp->filename, fileTemp->count);
+            fileTemp = fileTemp->next;
+        }
+        fprintf(DatabaseFile, "\n");
+        temp = temp->next;
+    }
+}
+
+void display_database(WordNode *WordList) {
+    WordNode *temp = WordList;
+    while (temp != NULL) {
+        printf("Word: %s\n", temp->word);
+        FileNode *fileTemp = temp->fileList;
+        while (fileTemp != NULL) {
+            printf("  File: %s (Occurrences: %d)\n", fileTemp->filename, fileTemp->count);
+            fileTemp = fileTemp->next;
+        }
+        temp = temp->next;
+    }
+}
+
+char* input_from_user() {
+    static char input[100];
+    fgets(input, 100, stdin);
+    input[strcspn(input, "\n")] = '\0';
+    return input;
+}
+
+FileNode* search(char *word, WordNode *IndexList) {
+    WordNode *temp = IndexList;
+    while (temp != NULL && strcmp(temp->word, word) != 0) {
+        temp = temp->next;
+    }
+    return temp ? temp->fileList : NULL;
+}
+
+void display_output(FileNode *outputList) {
+    FileNode *temp = outputList;
+    if (!temp) {
+        printf("No matches found.\n");
+    }
+    while (temp != NULL) {
+        printf("File: %s (Matches: %d)\n", temp->filename, temp->count);
+        temp = temp->next;
+    }
+}
+
+void save_backup(WordNode *WordList) {
+    FILE *backupFile = fopen("Backup_DatabaseFile.txt", "w");
+    if (backupFile == NULL) {
+        perror("Error creating backup file");
+        return;
+    }
+    write_databasefile(WordList, backupFile);
+    fclose(backupFile);
+}
