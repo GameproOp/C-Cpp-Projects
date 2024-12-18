@@ -1,0 +1,155 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_CONTACTS 100
+#define NAME_LENGTH 50
+#define PHONE_LENGTH 15
+#define EMAIL_LENGTH 50
+
+typedef struct {
+    char name[NAME_LENGTH];
+    char phone[PHONE_LENGTH];
+    char email[EMAIL_LENGTH];
+} Contact;
+
+Contact contacts[MAX_CONTACTS];
+int contactCount = 0;
+
+void addContact();
+void viewContacts();
+void editContact();
+void deleteContact();
+void menu();
+
+int main() {
+    menu();
+    return 0;
+}
+
+void menu() {
+    int choice;
+    do {
+        printf("\nAddress Book Menu:\n");
+        printf("1. Add Contact\n");
+        printf("2. View Contacts\n");
+        printf("3. Edit Contact\n");
+        printf("4. Delete Contact\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // to consume the newline character
+        
+        switch (choice) {
+            case 1:
+                addContact();
+                break;
+            case 2:
+                viewContacts();
+                break;
+            case 3:
+                editContact();
+                break;
+            case 4:
+                deleteContact();
+                break;
+            case 5:
+                printf("Exiting...\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 5);
+}
+
+void addContact() {
+    if (contactCount < MAX_CONTACTS) {
+        printf("Enter name: ");
+        fgets(contacts[contactCount].name, NAME_LENGTH, stdin);
+        contacts[contactCount].name[strcspn(contacts[contactCount].name, "\n")] = 0; // remove newline
+        printf("Enter phone: ");
+        fgets(contacts[contactCount].phone, PHONE_LENGTH, stdin);
+        contacts[contactCount].phone[strcspn(contacts[contactCount].phone, "\n")] = 0; // remove newline
+        printf("Enter email: ");
+        fgets(contacts[contactCount].email, EMAIL_LENGTH, stdin);
+        contacts[contactCount].email[strcspn(contacts[contactCount].email, "\n")] = 0; // remove newline
+        contactCount++;
+        printf("Contact added successfully.\n");
+    } else {
+        printf("Address book is full.\n");
+    }
+}
+
+void viewContacts() {
+    if (contactCount == 0) {
+        printf("No contacts available.\n");
+        return;
+    }
+    printf("\nContacts:\n");
+    for (int i = 0; i < contactCount; i++) {
+        printf("Contact %d: \n", i + 1);
+        printf("Name: %s\n", contacts[i].name);
+        printf("Phone: %s\n", contacts[i].phone);
+        printf("Email: %s\n", contacts[i].email);
+        printf("\n");
+    }
+}
+
+void editContact() {
+    int index;
+    viewContacts();
+    printf("Enter the contact number to edit: ");
+    scanf("%d", &index);
+    getchar(); // to consume the newline character
+
+    if (index < 1 || index > contactCount) {
+        printf("Invalid contact number.\n");
+        return;
+    }
+
+    printf("Editing Contact %d:\n", index);
+    printf("Enter new name (leave empty to keep current): ");
+    char name[NAME_LENGTH];
+    fgets(name, NAME_LENGTH, stdin);
+    if (strlen(name) > 1) {
+        name[strcspn(name, "\n")] = 0; // remove newline
+        strcpy(contacts[index - 1].name, name);
+    }
+
+    printf("Enter new phone (leave empty to keep current): ");
+    char phone[PHONE_LENGTH];
+    fgets(phone, PHONE_LENGTH, stdin);
+    if (strlen(phone) > 1) {
+        phone[strcspn(phone, "\n")] = 0; // remove newline
+        strcpy(contacts[index - 1].phone, phone);
+    }
+
+    printf("Enter new email (leave empty to keep current): ");
+    char email[EMAIL_LENGTH];
+    fgets(email, EMAIL_LENGTH, stdin);
+    if (strlen(email) > 1) {
+        email[strcspn(email, "\n")] = 0; // remove newline
+        strcpy(contacts[index - 1].email, email);
+    }
+
+    printf("Contact updated successfully.\n");
+}
+
+void deleteContact() {
+    int index;
+    viewContacts();
+    printf("Enter the contact number to delete: ");
+    scanf("%d", &index);
+    getchar(); // to consume the newline character
+
+    if (index < 1 || index > contactCount) {
+        printf("Invalid contact number.\n");
+        return;
+    }
+
+    for (int i = index - 1; i < contactCount - 1; i++) {
+        contacts[i] = contacts[i + 1];
+    }
+    contactCount--;
+    printf("Contact deleted successfully.\n");
+}
